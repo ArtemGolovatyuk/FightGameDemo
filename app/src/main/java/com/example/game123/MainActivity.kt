@@ -26,6 +26,7 @@ import com.beust.klaxon.Json
 import com.beust.klaxon.Klaxon
 import com.example.game123.ui.theme.Game123Theme
 import com.github.kittinunf.fuel.httpGet
+import com.github.kittinunf.fuel.httpPost
 
 
 
@@ -59,6 +60,9 @@ fun fetchCharacterData(onCharacterReceived: (Welcome) -> Unit) {
                 val character1 = Klaxon().parse<Welcome>(json)
                 // Вызываем лямбда-функцию для обновления состояния
                 onCharacterReceived(character1 ?: Welcome("", 0, 0, 0, 0, 0, 0, 0, false, 0))
+
+                // Проверяем здоровье и устанавливаем имя победителя
+
             }
             is com.github.kittinunf.result.Result.Failure -> {
                 val error = result.error
@@ -80,6 +84,9 @@ fun fetchCharacterData2(onCharacterReceived: (Welcome) -> Unit) {
                 val character2 = Klaxon().parse<Welcome>(json)
                 // Вызываем лямбда-функцию для обновления состояния
                 onCharacterReceived(character2 ?: Welcome("", 0, 0, 0, 0, 0, 0, 0, false, 0))
+
+                // Проверяем здоровье и устанавливаем имя победителя
+
             }
             is com.github.kittinunf.result.Result.Failure -> {
                 val error = result.error
@@ -89,6 +96,29 @@ fun fetchCharacterData2(onCharacterReceived: (Welcome) -> Unit) {
     }
 }
 
+
+
+
+fun sendPostRequestWithData() {
+    val url = "http://192.168.1.9:5000/fight_character"
+    val postData = "c1damage=damage"
+    url
+        .httpPost()
+        .header("Content-Type" to "application/x-www-form-urlencoded")
+        .body(postData)
+        .response { _, _, result ->
+            when (result) {
+                is com.github.kittinunf.result.Result.Success -> {
+                    val responseString = result.get()
+                    // Обработайте успешный ответ
+                }
+                is com.github.kittinunf.result.Result.Failure -> {
+                    val error = result.error
+                    // Обработайте ошибку
+                }
+            }
+        }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,6 +141,15 @@ class MainActivity : ComponentActivity() {
 fun Greeting(modifier: Modifier = Modifier) {
     var character1: Welcome? by remember { mutableStateOf(null) }
     var character2: Welcome? by remember { mutableStateOf(null) }
+    var winner: String? by remember{ mutableStateOf(null) }
+
+        if ((character2?.alive ) == false) {
+            winner = character1?.name ?: "Unknown"
+        }
+        else if((character1?.alive  ) == false){
+            winner = character2?.name ?: "Unknown"
+        }
+
 
     Column(
         modifier = modifier.fillMaxSize(),
@@ -154,7 +193,10 @@ fun Greeting(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
 
     ) {
-        Button(onClick = { fetchCharacterData { character1 = it } ; fetchCharacterData2 { character2 = it } } ) {
+        winner?.let { winner ->
+            Text("Winner: $winner", style = TextStyle(fontSize = 15.sp))
+        }
+        Button(onClick = { fetchCharacterData { character1 = it } ; fetchCharacterData2 { character2 = it }; sendPostRequestWithData() } ) {
             Text("Load Character")
 
         }
